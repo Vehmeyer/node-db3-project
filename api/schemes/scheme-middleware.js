@@ -1,5 +1,5 @@
-const Scheme = require('./scheme-model')
-const Step = require('../../data/db-config')
+// const Scheme = require('./scheme-model')
+const db = require('../../data/db-config')
 
 /*
   If `scheme_id` does not exist in the database:
@@ -11,14 +11,16 @@ const Step = require('../../data/db-config')
 */
 const checkSchemeId = async (req, res, next) => {
   try {
-    const scheme = await Scheme.findById(req.params.id)
-    if (!scheme) {
+    const existingId = await db('schemes')
+      .where('scheme_id', req.params.scheme_id)
+      .first()
+    
+    if (!existingId) {
       next({
         status: 404,
-        message: `scheme with scheme_id ${req.params.id} not found`
+        message: `scheme with scheme_id ${req.params.scheme_id} not found`
       })
     } else {
-      req.scheme = scheme
       next()
     }
   } catch (err) {
@@ -35,19 +37,16 @@ const checkSchemeId = async (req, res, next) => {
   }
 */
 const validateScheme = (req, res, next) => {
-  if (!req.body.scheme_name) return next({
-    status: 400,
-    message: "invalid scheme_name"
-  })
-  if (req.body.scheme_name === '') return next({
-    status: 400,
-    message: "invalid scheme_name"
-  })
-  if (typeof req.body.scheme_name !== 'string') return next({
-    status: 400,
-    message: "invalid scheme_name"
-  })
-  next()
+  const { scheme_name } = req.body
+  if (
+    scheme_name === undefined ||
+    typeof req.body.scheme_name !== 'string' ||
+    !req.body.scheme_name.trim()
+    ) { 
+      next({ status: 400, message: "invalid scheme_name" })
+  } else {
+    next()
+  }
 }
 
 /*
@@ -60,23 +59,20 @@ const validateScheme = (req, res, next) => {
   }
 */
 const validateStep = (req, res, next) => {
-  if (!req.body.instructions) return next({
-    status: 400,
-    message: "invalid step"
-  })
-  if (req.body.instructions === '') return next({
-    status: 400,
-    message: "invalid step"
-  })
-  if (typeof req.body.instructions !== 'string') return next({
-    status: 400,
-    message: "invalid step"
-  })
-  if (req.body.step_number < 1) return next({
-    status: 400,
-    message: "invalid step"
-  })
-  next()
+  const { instructions, step_number } = req.body
+
+  if (
+    instructions === undefined ||
+    typeof instructions !== 'string' ||
+    !instructions.trim() ||
+    typeof step_number !== 'number' ||
+    step_number < 1
+  ) {
+    const error = { status: 400, message: "invalid step"}
+    next(error)
+  } else {
+    next()
+  }
 }
 
 module.exports = {
